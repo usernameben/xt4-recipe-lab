@@ -1,4 +1,4 @@
-const CACHE = "recipe-lab-v1";
+const CACHE = "recipe-lab-v3";
 const ASSETS = [
   "/",
   "/index.html",
