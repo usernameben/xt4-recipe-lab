@@ -213,12 +213,18 @@ const LENS_DATA = {
 };
 
 const STYLE_DATA = {
-  street:   "gritty street photography, high contrast, punchy shadows",
-  portrait: "flattering skin tones, soft highlights, gentle colour",
-  landscape:"rich greens and blues, detailed highlights, saturated naturalistic",
-  film:     "filmic colour science, lifted shadows, cinematic highlight roll-off",
-  moody:    "dark and atmospheric, crushed blacks, muted palette",
-  vintage:  "faded retro aesthetic, cross-processed feel, warm cast, organic grain"
+  street:    "gritty urban street photography, punchy shadows",
+  portrait:  "flattering skin tones, soft highlights, intimate",
+  landscape: "rich naturalistic colour, detailed highlights",
+  film:      "cinematic lifted shadows, highlight roll-off",
+  moody:     "dark atmospheric, crushed blacks, muted palette",
+  vintage:   "faded retro, cross-processed, warm grain",
+  golden:    "golden hour warmth, long shadows, magic light",
+  overcast:  "flat diffused light, muted tones, quiet mood",
+  tungsten:  "indoor tungsten, night shooting, warm ambient",
+  bw_street: "punchy black and white street documentary",
+  bw_portrait:"soft tonal black and white for portraits",
+  cinematic: "widescreen cinematic, teal and orange grade"
 };
 
 // ── State ─────────────────────────────────────────────────────────
@@ -231,44 +237,216 @@ function buildRecipe(lenses, style) {
   const hasHelios40  = lenses.includes("helios40");
   const hasHelios44  = lenses.includes("helios44");
   const hasHelios    = hasHelios40 || hasHelios44;
+  const hasJupiter9  = lenses.includes("jupiter9");
+  const hasIndustar  = lenses.includes("industar");
   const hasMir       = lenses.includes("mir");
   const hasJupiter37 = lenses.includes("jupiter37");
 
+  // ── Base profiles, researched from Fuji X Weekly community + lens characteristics ──
+  // Key insight from research:
+  // - Classic Chrome is king, most popular base for film-stock recipes
+  // - Helios 40-2 has low contrast + yellowish cast + magenta fringe wide open
+  // - Helios 44-2 on APS-C = 87mm equiv, APS-C crops into sharp centre
+  // - Helios 40-2 on APS-C = ~128mm equiv, thrives in soft light, terrible in harsh cross-light
+  // - Both lenses: spherical aberration creates veiling glow → need clarity lift to compensate
+  // - Grain should be organic (Weak/Strong Large) not Small for digital feel
   const profiles = {
-    street:   { name:"Dirty Glass",    subtitle:"Gritty urban shadows with Soviet bite",           film:"Classic Chrome",       hl:-1,sh:1, co:-1,nr:-4,sp:-1,cl:2, gr:"Strong Small", cc:"Strong",chrB:"Weak",  wb:"Daylight",    wbR:2, wbB:-2 },
-    portrait: { name:"Velvet Soul",    subtitle:"Soft Soviet rendering for timeless portraits",     film:"ASTIA/Soft",           hl:-2,sh:0, co:1, nr:-2,sp:-2,cl:-1,gr:"Weak Large",   cc:"Off",   chrB:"Off",   wb:"Shade",       wbR:3, wbB:-3 },
-    landscape:{ name:"Steppe Light",   subtitle:"Rich naturalistic tones through vintage glass",    film:"Velvia/Vivid",         hl:-2,sh:1, co:2, nr:-3,sp:0, cl:1, gr:"Weak Small",   cc:"Weak",  chrB:"Strong",wb:"Daylight",    wbR:1, wbB:0  },
-    film:     { name:"Soviet Cinema",  subtitle:"Cinematic lifted shadows and rolled highlights",   film:"ETERNA",               hl:-2,sh:2, co:-1,nr:-3,sp:-2,cl:0, gr:"Weak Large",   cc:"Weak",  chrB:"Off",   wb:"Kelvin 5200K",wbR:2, wbB:-1 },
-    moody:    { name:"Leningrad Dusk", subtitle:"Crushed shadows and muted palette for atmosphere", film:"ETERNA BLEACH BYPASS", hl:-1,sh:3, co:-2,nr:-4,sp:-1,cl:1, gr:"Strong Large", cc:"Strong",chrB:"Weak",  wb:"Cloudy",      wbR:1, wbB:-2 },
-    vintage:  { name:"Kodachrome East",subtitle:"Faded cross-processed warmth with organic grain",  film:"Classic Neg",          hl:1, sh:2, co:1, nr:-3,sp:-2,cl:-1,gr:"Strong Small", cc:"Weak",  chrB:"Off",   wb:"Cloudy",      wbR:4, wbB:-3 },
+    // ── Colour profiles ───────────────────────────────────────────
+    street: {
+      name:"Dirty Chrome",
+      subtitle:"Classic Chrome street grit — inspired by Kodachrome documentary work",
+      film:"Classic Chrome",
+      hl:-1,sh:1,co:-1,nr:-4,sp:0,cl:2,
+      gr:"Strong Small",cc:"Strong",chrB:"Weak",
+      wb:"Daylight",wbR:2,wbB:-2,dr:"DR200"
+    },
+    portrait: {
+      name:"Portra Soul",
+      subtitle:"Warm Portra-inspired skin tones — soft, intimate, timeless",
+      film:"PRO Neg.Hi",
+      hl:-2,sh:0,co:1,nr:-2,sp:-2,cl:-1,
+      gr:"Weak Large",cc:"Off",chrB:"Off",
+      wb:"Shade",wbR:3,wbB:-3,dr:"DR200"
+    },
+    landscape: {
+      name:"Steppe Velvia",
+      subtitle:"Saturated naturalistic landscape — rich greens and deep blues",
+      film:"Velvia/Vivid",
+      hl:-2,sh:1,co:2,nr:-3,sp:0,cl:1,
+      gr:"Weak Small",cc:"Weak",chrB:"Strong",
+      wb:"Daylight",wbR:1,wbB:0,dr:"DR400"
+    },
+    film: {
+      name:"Soviet ETERNA",
+      subtitle:"Cinematic flat grade — lifted shadows, rolled highlights, filmic grain",
+      film:"ETERNA",
+      hl:-2,sh:2,co:-1,nr:-3,sp:-2,cl:0,
+      gr:"Weak Large",cc:"Weak",chrB:"Off",
+      wb:"Kelvin 5200K",wbR:2,wbB:-1,dr:"DR200"
+    },
+    moody: {
+      name:"Leningrad Bypass",
+      subtitle:"Bleach bypass darkness — crushed blacks, desaturated, heavy atmosphere",
+      film:"ETERNA BLEACH BYPASS",
+      hl:-1,sh:3,co:-2,nr:-4,sp:-1,cl:1,
+      gr:"Strong Large",cc:"Strong",chrB:"Weak",
+      wb:"Cloudy",wbR:1,wbB:-2,dr:"DR200"
+    },
+    vintage: {
+      name:"Kodachrome East",
+      subtitle:"Faded slide film warmth — cross-processed glow, organic grain",
+      film:"Classic Neg",
+      hl:1,sh:2,co:1,nr:-3,sp:-2,cl:-1,
+      gr:"Strong Small",cc:"Weak",chrB:"Off",
+      wb:"Cloudy",wbR:4,wbB:-3,dr:"DR200"
+    },
+    golden: {
+      name:"Golden Hour Chrome",
+      subtitle:"Magic hour gold — warm highlights, long shadows, honeyed glow",
+      film:"Classic Chrome",
+      hl:-1,sh:2,co:1,nr:-3,sp:-1,cl:1,
+      gr:"Weak Large",cc:"Strong",chrB:"Off",
+      wb:"Shade",wbR:5,wbB:-4,dr:"DR200"
+    },
+    overcast: {
+      name:"Grey Noise",
+      subtitle:"Overcast muted — flat light, quiet colour, contemplative mood",
+      film:"Classic Neg",
+      hl:-1,sh:1,co:-2,nr:-3,sp:-1,cl:0,
+      gr:"Weak Large",cc:"Weak",chrB:"Weak",
+      wb:"Cloudy",wbR:2,wbB:-1,dr:"DR200"
+    },
+    tungsten: {
+      name:"CineStill Night",
+      subtitle:"Tungsten indoor warmth — inspired by CineStill 800T, for low light",
+      film:"ETERNA",
+      hl:-2,sh:3,co:0,nr:-2,sp:-2,cl:-1,
+      gr:"Strong Large",cc:"Off",chrB:"Off",
+      wb:"Kelvin 3200K",wbR:3,wbB:-5,dr:"DR200"
+    },
+    // ── B&W profiles ──────────────────────────────────────────────
+    bw_street: {
+      name:"Tri-X Grit",
+      subtitle:"Punchy Kodak Tri-X 400 street B&W — high contrast, heavy grain",
+      film:"ACROS+R",
+      hl:-1,sh:2,co:0,nr:-4,sp:1,cl:2,
+      gr:"Strong Small",cc:"Off",chrB:"Off",
+      wb:"Auto",wbR:0,wbB:0,dr:"DR200"
+    },
+    bw_portrait: {
+      name:"Ilford Velvet",
+      subtitle:"Soft portrait B&W — inspired by Ilford FP4, delicate tonal gradation",
+      film:"ACROS",
+      hl:-2,sh:0,co:0,nr:-2,sp:-2,cl:-2,
+      gr:"Weak Large",cc:"Off",chrB:"Off",
+      wb:"Auto",wbR:0,wbB:0,dr:"DR200"
+    },
+    cinematic: {
+      name:"Teal & Grain",
+      subtitle:"Widescreen cinema grade — teal shadows, warm highlights, lifted blacks",
+      film:"ETERNA BLEACH BYPASS",
+      hl:-1,sh:3,co:-1,nr:-3,sp:-2,cl:1,
+      gr:"Weak Large",cc:"Strong",chrB:"Strong",
+      wb:"Kelvin 5600K",wbR:2,wbB:2,dr:"DR400"
+    },
   };
 
   const p = { ...profiles[style] || profiles.street };
 
-  if (hasHelios40) { p.hl=Math.max(p.hl-1,-2); p.sh=Math.min(p.sh+1,4); p.sp=Math.max(p.sp-1,-4); p.wbR=Math.min(p.wbR+1,9); p.cl=Math.max(p.cl-1,-5); }
-  else if (hasHelios44) { p.wbR=Math.min(p.wbR+1,9); p.sp=Math.max(p.sp-1,-4); }
-  if (hasMir)       { p.cl=Math.min(p.cl+1,5); p.sp=Math.min(p.sp+1,4); }
-  if (hasJupiter37) { p.hl=Math.max(p.hl-1,-2); p.nr=Math.min(p.nr+1,4); }
+  // ── Lens-specific adjustments based on real optical characteristics ──
+  if (hasHelios40) {
+    // f/1.5: very low contrast wide open, yellowish+magenta cast, spherical aberration glow
+    // Thrives in soft light, flares badly in harsh cross-light
+    // On APS-C: ~128mm equiv, portrait/tight shots only
+    p.hl = Math.max(p.hl - 1, -2);
+    p.sh = Math.min(p.sh + 1, 4);
+    p.sp = Math.max(p.sp - 1, -4);
+    p.cl = Math.max(p.cl - 1, -5);       // let the SA glow breathe
+    p.wbR = Math.min(p.wbR + 2, 9);      // correct yellowish cast
+    p.wbB = Math.max(p.wbB - 1, -9);     // counteract magenta fringe
+    p.co = Math.max(p.co - 1, -4);       // lens already mutes colour wide open
+    if (p.film === "Velvia/Vivid") p.film = "PRO Neg.Hi"; // Velvia too harsh for this lens
+  } else if (hasHelios44) {
+    // f/2: warm cast, lower contrast, soft edges but sharp centre on APS-C
+    // APS-C crop = ~87mm, swirly bokeh needs close subject + distant background
+    p.wbR = Math.min(p.wbR + 1, 9);
+    p.sp = Math.max(p.sp - 1, -4);
+    p.sh = Math.min(p.sh + 1, 4);        // lift shadows to match compressed contrast
+  }
+  if (hasJupiter9) {
+    // Smooth, classical rendering — slightly warm, good microcontrast
+    p.wbR = Math.min(p.wbR + 1, 9);
+    p.cl = Math.min(p.cl + 1, 5);        // can handle more clarity than Helios
+  }
+  if (hasIndustar) {
+    // Slightly cool, star bokeh, sharp centre — reduce warmth
+    p.wbR = Math.max(p.wbR - 1, -9);
+    p.sp = Math.min(p.sp + 1, 4);        // handles more sharpening than other Soviet glass
+  }
+  if (hasMir) {
+    // Wide angle, contrasty for Soviet glass — can handle more clarity and sharpening
+    p.cl = Math.min(p.cl + 1, 5);
+    p.sp = Math.min(p.sp + 1, 4);
+    p.co = Math.min(p.co + 1, 4);
+  }
+  if (hasJupiter37) {
+    // Telephoto compression, cleaner Soviet rendering — reduce highlight harshness
+    p.hl = Math.max(p.hl - 1, -2);
+    p.nr = Math.min(p.nr + 1, 4);
+    p.cl = Math.min(p.cl + 1, 5);
+  }
 
-  const lensNames = lenses.map(l => `${LENS_DATA[l].name} ${LENS_DATA[l].mm}`).join(" & ");
-  const notes = hasHelios
-    ? `The ${hasHelios40?"Helios 40-2's f/1.5":"Helios 44-2"} renders with a characteristic warm cast and compressed contrast — this recipe compensates with a warm WB shift and lifted shadows. Reduced sharpening and clarity let the lens's natural softness breathe. Shoot wide open for the signature swirly bokeh; stop to f/4–5.6 for controlled results that still retain Soviet character.`
-    : `Tuned for ${lensNames}, accounting for the lower contrast of vintage Soviet glass. The WB shift adds warmth complementing the lens rendering. Grain is kept organic to match the analog feel of shooting manual glass on a digital sensor.`;
+  // ── Lens notes ────────────────────────────────────────────────────
+  const lensNotes = {
+    helios40: `The Helios 40-2 at f/1.5 has very low contrast and a slight yellowish-magenta cast — this recipe corrects the white balance to compensate while keeping the dreamy spherical aberration glow intact. The lens thrives in soft, diffused light; avoid harsh cross-light as it flares severely. On the X-T4's APS-C sensor it becomes ~128mm equivalent, making it a tight portrait and detail lens. Stop down to f/2.8 for a significant contrast improvement while keeping beautiful bokeh.`,
+    helios44: `The Helios 44-2 on APS-C becomes ~87mm equivalent — the 1.5× crop works in your favour, using only the sharp centre of the lens. To trigger the famous swirly bokeh you need your subject close (1–2m) with a distant background (5m+) full of specular highlights or foliage. The recipe compensates for the lens's warm cast and compressed contrast with adjusted WB and lifted shadows.`,
+    jupiter9:  `The Jupiter-9 renders with smooth, classical bokeh and good microcontrast for Soviet glass. It has a gentle warm cast and handles colour well — this recipe leans into that with a slight WB shift while clarity is raised slightly to bring out the lens's natural detail.`,
+    industar:  `The Industar-61 is slightly cooler than other Soviet lenses and produces a distinctive star-shaped bokeh at small apertures. It's sharper in the centre than most Soviet glass so sharpening is not reduced as aggressively. Shoot at f/5.6–f/8 to see the star bokeh effect.`,
+    mir:       `The Mir-1B is the widest and most contrasty of the Soviet lenses in this selection. On APS-C it becomes ~56mm equivalent — a useful street focal length. It can handle more clarity and colour saturation than the portrait Soviet lenses.`,
+    jupiter37: `The Jupiter-37A at 135mm becomes ~202mm equivalent on APS-C — a long telephoto that excels for compressed environmental portraits and isolating details. Cleaner rendering than most Soviet glass; this recipe dials back highlights to avoid clipping in the longer focal length.`
+  };
+
+  // Pick the primary lens note (first lens selected)
+  const primaryLens = lenses[0];
+  const noteText = lensNotes[primaryLens] || `Tuned for ${lenses.map(l=>LENS_DATA[l].name).join(" & ")}, accounting for the lower contrast typical of vintage Soviet glass. The WB shift adds warmth complementing the lens rendering. Grain is kept organic to enhance the analog character.`;
+
+  // ── Shooting tips per style ────────────────────────────────────────
+  const tips = {
+    street:    ["ETTR — Soviet lenses lose contrast fast in shadows, overexpose slightly", "On the X-T4 use the OVF-style EVF display for a more spontaneous street experience", "Shoot at f/5.6–f/8 for zone focus street work with Soviet glass"],
+    portrait:  ["Use Digital Microprism on the X-T4 for precise manual focus on eyes", "For the swirl, position subject 1–2m from camera with bright backgrounds 5m+ away", "Shoot in shade or overcast — Soviet lenses love soft, even light"],
+    landscape: ["Stop down to f/8 for maximum sharpness corner to corner on Soviet glass", "Shoot into the light for beautiful Soviet-era flare effects", "Use a lens hood — Soviet lenses lack modern coatings and flare easily"],
+    film:      ["Shoot slightly underexposed (-1/3 EV) for a more filmic, denser shadow feel", "ETERNA's muted tones pair beautifully with the Soviet glass low-contrast rendering", "Great for video — ETERNA was designed with cinema in mind"],
+    moody:     ["Meter for highlights and let shadows crush — the recipe is designed for this", "Shoot in overcast or after golden hour for maximum atmospheric effect", "The Helios 40-2 wide open in soft moody light is this recipe's ideal combination"],
+    vintage:   ["Try shooting slightly overexposed (+1/3 EV) — vintage films were forgiving in highlights", "Classic Neg handles grain beautifully; don't be afraid of ISO 3200", "Shoot in sunlight for the warmest, most cross-processed effect"],
+    golden:    ["Shoot within 30 min of sunset/sunrise — the WB shift exaggerates the golden light", "Keep the sun behind or to the side — Soviet lenses produce beautiful golden flare", "Use the Helios 44-2 wide open to get subject sharp against molten bokeh"],
+    overcast:  ["Overcast is ideal for Soviet glass — flat light minimises flare and reveals lens character", "Drop ISO to base (160) for cleanest shadow detail in low contrast light", "Increase EV +1/3 to +2/3 to open up flat overcast scenes"],
+    tungsten:  ["Set ISO to 3200 as a starting point — the recipe is tuned for available light", "Shoot wide open — the Helios lenses shine in low light with soft backgrounds", "Avoid mixing tungsten and daylight in the same frame — the WB is fixed for tungsten"],
+    bw_street: ["ACROS+R filter darkens skies and brightens skin — ideal for street portraits", "Shoot with high contrast lighting — this recipe is built for harsh urban light", "Try ISO 3200 for authentic grain that matches the Tri-X 400 spirit"],
+    bw_portrait:["ACROS without filter gives the most neutral tonal response for portraits", "Shoot in window light or open shade — Soviet glass in soft B&W light is magical", "Focus precisely on the near eye — wide open bokeh in B&W is stunning"],
+    cinematic: ["Set aspect ratio to 16:9 on the X-T4 for an instant widescreen cinematic crop", "Colour Chrome FX Blue+Strong pushes teal into shadows for the Hollywood grade", "Shoot subjects against warm backgrounds to maximise the teal-orange split tones"],
+  };
 
   return {
-    name: p.name, subtitle: p.subtitle, filmSimulation: p.film,
+    name: p.name,
+    subtitle: p.subtitle,
+    filmSimulation: p.film,
     settings: {
-      "Dynamic Range":"DR200", "Highlight":fmt(p.hl), "Shadow":fmt(p.sh),
-      "Color":fmt(p.co), "Noise Reduc.":fmt(p.nr), "Sharpening":fmt(p.sp),
-      "Clarity":fmt(p.cl), "Grain Effect":p.gr, "Color Chrome":p.cc,
-      "CC Blue":p.chrB, "White Balance":p.wb, "WB Shift R":fmt(p.wbR), "WB Shift B":fmt(p.wbB)
+      "Dynamic Range": p.dr,
+      "Highlight":     fmt(p.hl),
+      "Shadow":        fmt(p.sh),
+      "Color":         fmt(p.co),
+      "Noise Reduc.":  fmt(p.nr),
+      "Sharpening":    fmt(p.sp),
+      "Clarity":       fmt(p.cl),
+      "Grain Effect":  p.gr,
+      "Color Chrome":  p.cc,
+      "CC Blue":       p.chrB,
+      "White Balance": p.wb,
+      "WB Shift R":    fmt(p.wbR),
+      "WB Shift B":    fmt(p.wbB)
     },
-    lensNotes: notes,
-    shootingTips: [
-      "Expose to the right (ETTR) — Soviet lenses lose contrast quickly in shadows",
-      "For the Helios swirl, find backgrounds with light sources or high-contrast edges at distance",
-      "Use focus peaking at 5.9× or 11.7× magnification on the X-T4 for accurate manual focus"
-    ]
+    lensNotes: noteText,
+    shootingTips: tips[style] || tips.street
   };
 }
 
@@ -297,9 +475,15 @@ function renderLenses() {
 
 function renderStyles() {
   const grid = document.getElementById("styleGrid");
+  const STYLE_LABELS = {
+    street:"Street", portrait:"Portrait", landscape:"Landscape",
+    film:"Filmic", moody:"Moody", vintage:"Vintage",
+    golden:"Golden Hr", overcast:"Overcast", tungsten:"Tungsten",
+    bw_street:"B&W Street", bw_portrait:"B&W Portrait", cinematic:"Cinematic"
+  };
   grid.innerHTML = Object.keys(STYLE_DATA).map(s => `
     <button class="style-btn ${selectedStyle===s?"active":""}" data-style="${s}">
-      ${s.charAt(0).toUpperCase()+s.slice(1)}
+      ${STYLE_LABELS[s]||s}
     </button>`).join("");
   grid.querySelectorAll(".style-btn").forEach(btn => {
     btn.addEventListener("click", () => {
